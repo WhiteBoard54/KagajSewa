@@ -1,0 +1,15 @@
+{
+  "name": "kagajsewa",
+  "version": "2.0.0",
+  "private": true,
+  "description": "KagajSewa \u2014 Nepali company document preparation. Static site generated from a single service catalog.",
+  "scripts": {
+    "build": "node src/build.js",
+    "build:local": "node src/build.js --local",
+    "serve": "node -e \"const h=require('http'),f=require('fs'),p=require('path');const t={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.xml':'application/xml','.txt':'text/plain'};h.createServer((q,s)=>{let u=decodeURIComponent(q.url.split('?')[0]);let fp=p.join(process.cwd(),u);if(!p.extname(fp))fp=p.join(fp,'index.html');if(!f.existsSync(fp)){s.writeHead(404,t['.html']);return s.end(f.readFileSync('404.html'))}s.writeHead(200,{'Content-Type':t[p.extname(fp)]||'application/octet-stream'});s.end(f.readFileSync(fp))}).listen(4173,()=>console.log('http://localhost:4173'))\"",
+    "dev": "npm run build && npm run serve"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
