@@ -1,2 +1,17 @@
+# Dependencies (this project has none, but just in case)
 node_modules/
+
+# OS junk
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# Local-only build output — never commit this mode.
+# Run "npm run build" (deploy mode) before pushing.
+_site/
+
+# Not part of this website — separate project, keep it out of the repo
+BlackBoard9/
+
+# Downloads dropped in here by Claude
+Claude outputs/
