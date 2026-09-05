@@ -15,12 +15,12 @@ const site = {
 
   // ---- Contact. This is the only place these appear. ----
   contact: {
-    phoneDisplay: '+977 98XX-XXXXXX',       // shown to Nepali visitors
-    phoneDisplayEn: '+977 98XX-XXXXXX',    // shown to English visitors
-    phoneDial: '+97798XXXXXXXX',           // tel: link — country code + digits, no spaces
-    whatsapp: '97798XXXXXXXX',             // wa.me number, digits only
-    viber: '+97798XXXXXXXX',
-    email: '368shahpiyush@gmail.com',
+    phoneDisplay: '+977 970-5163163',      // shown to Nepali visitors
+    phoneDisplayEn: '+977 970-5163163',    // shown to English visitors
+    phoneDial: '+9779705163163',           // tel: link — country code + digits, no spaces
+    whatsapp: '9779705163163',             // wa.me number, digits only
+    viber: '+9779705163163',
+    email: 'info.kagajsewa@gmail.com',
     hoursNp: 'आइतबार – शुक्रबार, बिहान १० – बेलुका ६',
     hoursEn: 'Sunday – Friday, 10:00 – 18:00 NPT',
     replyNp: 'सामान्यतया केही घण्टाभित्र',

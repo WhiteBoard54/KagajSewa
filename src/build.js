@@ -25,6 +25,22 @@ const SRC = __dirname;
 const LANGS = ['np', 'en'];
 const HTML_LANG = { np: 'ne', en: 'en' };
 
+/* ---------------------------------------------------------------------------
+   DEFAULT_LANG is the language served at the site root ("/").
+   The other language lives under its own URL segment.
+
+     DEFAULT_LANG = 'en'  ->  English at /,  Nepali at /ne/
+     DEFAULT_LANG = 'np'  ->  Nepali at /,   English at /en/
+
+   Changing this one line moves every URL, and updates canonicals, hreflang,
+   x-default, the sitemap and the 404 pages to match. Nothing else to edit.
+--------------------------------------------------------------------------- */
+const DEFAULT_LANG = 'en';
+const URL_SEG = { np: 'ne', en: 'en' };
+
+/** '' for the root language, otherwise the language's URL segment. */
+const seg = lang => (lang === DEFAULT_LANG ? '' : URL_SEG[lang]);
+
 /* ------------------------------------------------------------------ utils */
 
 const esc = s => String(s == null ? '' : s)
@@ -36,9 +52,8 @@ const attr = s => esc(s);
 /** Public URL path for a slug in a language. '' = home. */
 function href(lang, slug) {
   const base = site.basePath || '';
-  const s = String(slug || '').replace(/^\/|\/$/g, '');
-  if (lang === 'np') return s ? `${base}/${s}/` : `${base}/`;
-  return s ? `${base}/en/${s}/` : `${base}/en/`;
+  const parts = [seg(lang), String(slug || '').replace(/^\/|\/$/g, '')].filter(Boolean);
+  return parts.length ? `${base}/${parts.join('/')}/` : `${base}/`;
 }
 
 /** Absolute URL, for canonical / og / sitemap. */
@@ -47,7 +62,7 @@ const abs = (lang, slug) => site.siteUrl + href(lang, slug);
 /** Where the file lands on disk. */
 function outPath(lang, slug) {
   const s = String(slug || '').replace(/^\/|\/$/g, '');
-  const parts = lang === 'np' ? [] : ['en'];
+  const parts = seg(lang) ? [seg(lang)] : [];
   if (s) parts.push(...s.split('/'));
   return path.join(ROOT, ...parts, 'index.html');
 }
@@ -74,7 +89,7 @@ const LOCAL = process.argv.includes('--local') || process.env.KS_LOCAL === '1';
 /** Depth of a page's own directory below the site root. */
 function depthOf(lang, slug) {
   const s = String(slug || '').replace(/^\/|\/$/g, '');
-  return (lang === 'np' ? 0 : 1) + (s ? s.split('/').length : 0);
+  return (seg(lang) ? 1 : 0) + (s ? s.split('/').length : 0);
 }
 
 /** Turn one root-relative URL into a relative one for a page at `depth`. */
@@ -189,8 +204,9 @@ function brandMark() {
 function header(lang, slug, opts = {}) {
   const t = ui[lang];
   const base = site.basePath || '';
-  const npHref = opts.is404 ? `${base}/404.html` : href('np', slug);
-  const enHref = opts.is404 ? `${base}/en/404.html` : href('en', slug);
+  const l404 = l => (seg(l) ? `${base}/${seg(l)}/404.html` : `${base}/404.html`);
+  const npHref = opts.is404 ? l404('np') : href('np', slug);
+  const enHref = opts.is404 ? l404('en') : href('en', slug);
   const nav = [
     [href(lang, 'services'), t.nav.services],
     [href(lang, 'guides'), t.nav.guides],
@@ -376,7 +392,7 @@ ${o.noindex ? '<meta name="robots" content="noindex, follow">' : ''}
 ${o.is404 ? '' : `<link rel="canonical" href="${attr(canonical)}">
 <link rel="alternate" hreflang="ne" href="${attr(abs('np', o.slug))}">
 <link rel="alternate" hreflang="en" href="${attr(abs('en', o.slug))}">
-<link rel="alternate" hreflang="x-default" href="${attr(abs('np', o.slug))}">`}
+<link rel="alternate" hreflang="x-default" href="${attr(abs(DEFAULT_LANG, o.slug))}">`}
 <meta name="theme-color" content="#0d5561">
 <meta property="og:type" content="${attr(o.ogType || 'website')}">
 <meta property="og:site_name" content="KagajSewa">
@@ -1389,7 +1405,7 @@ function notFoundPage(lang) {
   return page({
     // 404.html sits at the root of its language, not in a /404/ directory.
     lang, slug: '404', noindex: true, withSearch: true, is404: true,
-    depth: lang === 'np' ? 0 : 1,
+    depth: seg(lang) ? 1 : 0,
     title: t.notFound.metaTitle,
     desc: t.notFound.p,
     body
@@ -1427,10 +1443,13 @@ function build() {
     for (const item of legal) emit(lang, item.slug, legalPage(lang, item), '0.3', 'yearly');
   }
 
-  /* 404 — GitHub Pages serves /404.html for any missing path. Nepali default. */
-  write(path.join(ROOT, '404.html'), notFoundPage('np'));
-  write(path.join(ROOT, 'en', '404.html'), notFoundPage('en'));
-  count += 2;
+  /* 404 — GitHub Pages serves /404.html for any missing path, so the root
+     404 must be in the default language. */
+  for (const lang of LANGS) {
+    const parts = seg(lang) ? [seg(lang), '404.html'] : ['404.html'];
+    write(path.join(ROOT, ...parts), notFoundPage(lang));
+    count++;
+  }
 
   /* assets */
   const assetDir = path.join(ROOT, 'assets');
@@ -1458,7 +1477,7 @@ function build() {
     sm.push(`    <loc>${esc(abs(u.lang, u.slug))}</loc>`);
     sm.push(`    <xhtml:link rel="alternate" hreflang="ne" href="${esc(abs('np', u.slug))}"/>`);
     sm.push(`    <xhtml:link rel="alternate" hreflang="en" href="${esc(abs('en', u.slug))}"/>`);
-    sm.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${esc(abs('np', u.slug))}"/>`);
+    sm.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${esc(abs(DEFAULT_LANG, u.slug))}"/>`);
     sm.push(`    <lastmod>${today}</lastmod>`);
     sm.push(`    <changefreq>${u.changefreq}</changefreq>`);
     sm.push(`    <priority>${u.priority}</priority>`);
