@@ -194,7 +194,7 @@ const ui = {
     skip: 'Skip to content',
 
     nav: {
-      services: 'Services',
+      services: 'Delete Later',
       how: 'How it works',
       why: 'Why us',
       guides: 'Guides',
