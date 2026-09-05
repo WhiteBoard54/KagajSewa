@@ -31,7 +31,7 @@ const site = {
     np: 'कागज सेवा',
     en: 'KagajSewa',
     taglineNp: 'कम्पनी दर्ता, अद्यावधिक र कागजात तयारी सेवा',
-    taglineEn: 'Company registration, updates and document preparation'
+    taglineEn: 'Company registration Ayush, updates and document preparation'
   },
 
   // Payment methods actually accepted today.

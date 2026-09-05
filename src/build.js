@@ -3,8 +3,8 @@
    KagajSewa static site generator
 
    Reads src/data/*, writes plain HTML into the repo root.
-   Nepali is the default language and lives at /.
-   English lives at /en/.
+   English is the default language and lives at /.
+   Nepali lives at /ne/.
 
    Run:  npm run build
    ========================================================================== */
@@ -22,7 +22,7 @@ const { ui, faq, legal } = require('./data/ui');
 
 const ROOT = path.resolve(__dirname, '..');
 const SRC = __dirname;
-const LANGS = ['np', 'en'];
+const LANGS = ['en', 'np'];
 const HTML_LANG = { np: 'ne', en: 'en' };
 
 /* ------------------------------------------------------------------ utils */
@@ -37,8 +37,8 @@ const attr = s => esc(s);
 function href(lang, slug) {
   const base = site.basePath || '';
   const s = String(slug || '').replace(/^\/|\/$/g, '');
-  if (lang === 'np') return s ? `${base}/${s}/` : `${base}/`;
-  return s ? `${base}/en/${s}/` : `${base}/en/`;
+  if (lang === 'en') return s ? `${base}/${s}/` : `${base}/`;
+  return s ? `${base}/ne/${s}/` : `${base}/ne/`;
 }
 
 /** Absolute URL, for canonical / og / sitemap. */
@@ -47,7 +47,7 @@ const abs = (lang, slug) => site.siteUrl + href(lang, slug);
 /** Where the file lands on disk. */
 function outPath(lang, slug) {
   const s = String(slug || '').replace(/^\/|\/$/g, '');
-  const parts = lang === 'np' ? [] : ['en'];
+  const parts = lang === 'en' ? [] : ['ne'];
   if (s) parts.push(...s.split('/'));
   return path.join(ROOT, ...parts, 'index.html');
 }
@@ -74,7 +74,7 @@ const LOCAL = process.argv.includes('--local') || process.env.KS_LOCAL === '1';
 /** Depth of a page's own directory below the site root. */
 function depthOf(lang, slug) {
   const s = String(slug || '').replace(/^\/|\/$/g, '');
-  return (lang === 'np' ? 0 : 1) + (s ? s.split('/').length : 0);
+  return (lang === 'en' ? 0 : 1) + (s ? s.split('/').length : 0);
 }
 
 /** Turn one root-relative URL into a relative one for a page at `depth`. */
@@ -95,7 +95,7 @@ function relativise(html, depth) {
 const money = n => 'NPR ' + Number(n).toLocaleString('en-US');
 
 function priceLine(lang, n) {
-  return lang === 'np' ? `${money(n)} बाट सुरु` : `From ${money(n)}`;
+  return lang === 'en' ? `From ${money(n)}` : `${money(n)} बाट सुरु`;
 }
 
 const byId = id => services.find(s => s.id === id);
@@ -376,7 +376,7 @@ ${o.noindex ? '<meta name="robots" content="noindex, follow">' : ''}
 ${o.is404 ? '' : `<link rel="canonical" href="${attr(canonical)}">
 <link rel="alternate" hreflang="ne" href="${attr(abs('np', o.slug))}">
 <link rel="alternate" hreflang="en" href="${attr(abs('en', o.slug))}">
-<link rel="alternate" hreflang="x-default" href="${attr(abs('np', o.slug))}">`}
+<link rel="alternate" hreflang="x-default" href="${attr(abs('en', o.slug))}">`}
 <meta name="theme-color" content="#0d5561">
 <meta property="og:type" content="${attr(o.ogType || 'website')}">
 <meta property="og:site_name" content="KagajSewa">
@@ -1389,7 +1389,7 @@ function notFoundPage(lang) {
   return page({
     // 404.html sits at the root of its language, not in a /404/ directory.
     lang, slug: '404', noindex: true, withSearch: true, is404: true,
-    depth: lang === 'np' ? 0 : 1,
+    depth: lang === 'en' ? 0 : 1,
     title: t.notFound.metaTitle,
     desc: t.notFound.p,
     body
@@ -1427,9 +1427,9 @@ function build() {
     for (const item of legal) emit(lang, item.slug, legalPage(lang, item), '0.3', 'yearly');
   }
 
-  /* 404 — GitHub Pages serves /404.html for any missing path. Nepali default. */
-  write(path.join(ROOT, '404.html'), notFoundPage('np'));
-  write(path.join(ROOT, 'en', '404.html'), notFoundPage('en'));
+  /* 404 — GitHub Pages serves /404.html for any missing path. English default. */
+  write(path.join(ROOT, '404.html'), notFoundPage('en'));
+  write(path.join(ROOT, 'ne', '404.html'), notFoundPage('np'));
   count += 2;
 
   /* assets */
@@ -1458,7 +1458,7 @@ function build() {
     sm.push(`    <loc>${esc(abs(u.lang, u.slug))}</loc>`);
     sm.push(`    <xhtml:link rel="alternate" hreflang="ne" href="${esc(abs('np', u.slug))}"/>`);
     sm.push(`    <xhtml:link rel="alternate" hreflang="en" href="${esc(abs('en', u.slug))}"/>`);
-    sm.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${esc(abs('np', u.slug))}"/>`);
+    sm.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${esc(abs('en', u.slug))}"/>`);
     sm.push(`    <lastmod>${today}</lastmod>`);
     sm.push(`    <changefreq>${u.changefreq}</changefreq>`);
     sm.push(`    <priority>${u.priority}</priority>`);
