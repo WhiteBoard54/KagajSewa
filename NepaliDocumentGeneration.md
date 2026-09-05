@@ -237,6 +237,28 @@ covers that.
 
 ---
 
+## 5a. Offices of the Company Registrar
+
+There are three, and only three: the head office plus two branches. Verified
+against [ocr.gov.np](https://ocr.gov.np/pages/branch-offices-12/) on 2026-09-05.
+
+| Nepali | English |
+|---|---|
+| कम्पनी रजिष्ट्रारको कार्यालय, त्रिपुरेश्वर, काठमाडौं | Head office, Tripureshwor, Kathmandu |
+| कम्पनी रजिष्ट्रारको कार्यालय, ईटहरी | Itahari branch |
+| कम्पनी रजिष्ट्रारको कार्यालय, बुटवल | Butwal branch |
+
+They live in `OCR_OFFICES` at the top of `doc-templates.js`. If OCR opens
+another branch, that constant is the only place to change.
+
+Use **one** office field per document and let it drive every mention — the
+addressee, the "registered at" sentence and the office the shareholder appears
+at. The reference documents in circulation hardcode Tripureshwor in the letter
+while naming the branch in the minute, which contradicts itself for any company
+registered at Itahari or Butwal.
+
+---
+
 ## 6. Anatomy of a board minute (माइन्युट)
 
 Nearly every company document a bank or office asks for is a minute of a
@@ -312,6 +334,14 @@ typos that get copied from company to company. These are already corrected in
 | वसी | बसी |
 | बैक | बैंक |
 | छलफलवाट | छलफलबाट |
+| वैठक | बैठक |
+| रजिष्ट्रार्ड कार्यालय | रजिष्ट्रारको कार्यालय |
+| रद | रद्द |
+| पुन | पुन: |
+| आइडि | आईडी |
+| गरि पाउँ | गरी पाउँ |
+| कागजातहरुः | कागजातहरू: |
+| स्वयम | स्वयम् |
 
 Do not "improve" wording beyond fixing spelling. If a phrase is standard in
 Nepali practice, keep it standard — a bank clerk is matching against documents
@@ -358,9 +388,15 @@ does not check, but duplicate titles were a real defect here before.
 | `tel` | tel input | the string |
 | `email` | email input | the string |
 | `time` | time input | `'HH:MM'` |
-| `fiscalYear` | dropdown, 2090/91 → 2070/71 | `'2080/81'` |
+| `select` | dropdown from `f.options` | the chosen option's `v` |
+| `fiscalYear` | dropdown, 2090/91 → 2030/31 | `'2080/81'` |
 | `bsdate` | three dropdowns | `'2083/05/20'` |
 | `address` | text input + cascading picker | the composed Nepali string |
+
+A `select` takes `options: [{ v, np, en }]`. `v` is what `render` receives, so
+make it the exact phrase the document needs — then the template concatenates it
+rather than mapping a code back to a string. `OCR_OFFICES` at the top of
+`doc-templates.js` is the worked example.
 
 Flags: `req` (required), `half` (pairs with the next `half` field on one row),
 `suffix` (a fixed non-editable tail such as `प्रा.लि.`), `def` (default value).
@@ -376,23 +412,62 @@ a reason to abandon the form. Anything that is nearly always the same gets a
 `v` holds the answers keyed by field `k`. `H` is the helper set from §4 plus
 `H.lang`.
 
-It returns a plain object. `drawDoc()` draws whatever is present and skips
-whatever is not:
+It returns a plain object, in one of two shapes.
+
+**Shape A — blocks (use this for anything new).** A document is a list of
+pages; a page is a list of blocks. One renderer draws every block type, so a
+new document needs no engine changes:
+
+```js
+{ pages: [ [ block, block, … ],      // page 1
+           [ block, block, … ] ] }   // page 2, starts a new sheet when printed
+```
+
+| Block | Draws as |
+|---|---|
+| `{type:'corner', text}` | small right-aligned line (registration number) |
+| `{type:'title', text}` | centred, large, bold — the company name |
+| `{type:'sub', text}` | centred — the address |
+| `{type:'conn', text}` | centred — the standalone `को` |
+| `{type:'heading', text}` | centred bold — which meeting |
+| `{type:'right', text}` | right-aligned line — `मिति: …` on a letter |
+| `{type:'lines', items:[]}` | stacked left-aligned lines — the addressee |
+| `{type:'subject', text}` | centred, bold, underlined — `विषय:- …` |
+| `{type:'salut', text}` | `महोदय,` |
+| `{type:'para', text, indent}` | justified paragraph; `indent` for a letter's opening |
+| `{type:'meta', items:[{l,v}]}` | inline label/value pairs — स्थान / मिति / समय |
+| `{type:'table', caption, cols, rows}` | empty last cell → dotted signature rule |
+| `{type:'secH', text}` | underlined section heading |
+| `{type:'items', items:[]}` | strings, or `{label, text}` for निर्णय नं. |
+| `{type:'sign', heading, items:[]}` | right-aligned signature block; `{l,v,rule,bold}` per line |
+| `{type:'gap'}` / `{type:'rule'}` | vertical space / horizontal line |
+
+**Shape B — flat, single page.** The original shape, kept because the earlier
+templates use it. The engine converts it to blocks internally:
 
 ```js
 {
-  cornerRight,             // top-right registration line
-  title,                   // company name, centred
-  subtitle,                // address
-  connector,               // 'को'
-  heading,                 // which meeting
-  intro,                   // opening paragraph
+  cornerRight, title, subtitle, connector, heading, intro,
   meta:     [ { l: 'स्थान:', v: '…' } ],
-  table:    { caption, cols: [], rows: [[]] },   // empty last cell → dotted rule
+  table:    { caption, cols: [], rows: [[]] },
   sections: [ { h: '…', items: [ '…', { label: 'निर्णय नं. १', text: '…' } ] } ],
   closing
 }
 ```
+
+All block text is escaped, and the space before every danda is turned into a
+non-breaking space so `।` can never be pushed onto a line by itself.
+
+### Multi-page documents
+
+Several filings need a covering letter plus the minute it encloses — the CAMIS
+reset is the worked example. Put each on its own page in `pages`. On screen
+they are separated by a dashed rule so the visitor sees where the break falls;
+in print each starts a new sheet.
+
+Anything you add to a tool page that must not appear in the printed document
+gets `class="no-print"`. Do not add it to the list of hidden selectors in
+`docgen.css` — that list is for the site chrome only.
 
 Constraints on `render`:
 
@@ -433,8 +508,9 @@ generator.
 2. Check every number is in Devanagari — registration, fiscal year, date, time,
    phone, amounts. A stray Latin digit is the usual bug.
 3. Leave each required field blank in turn and confirm it is blocked and named.
-4. Print preview (Ctrl/Cmd + P). One page if it should be one page; no
-   decision paragraph split; no site chrome.
+4. Print preview (Ctrl/Cmd + P). Exactly as many sheets as the document has
+   pages — no stray page of site chrome at the end; no decision paragraph
+   split across a break.
 5. Reload the page and confirm the answers come back from `localStorage`.
 6. Do 1–5 again with the interface in English. The document must be identical.
 
@@ -445,6 +521,9 @@ generator.
 In rough order of how often they are asked for. Each needs its exact Nepali
 wording checked against a real document before it is written — do not
 reconstruct legal text from memory.
+
+Already built: bank account opening (single shareholder) and CAMIS ID/password
+reset (single shareholder).
 
 **Board minutes** — PAN/VAT registration · change of registered office ·
 appointment or change of director · authorised signatory change · company name

@@ -45,7 +45,9 @@ function makeToolPages(api) {
     let control = '';
 
     if (f.t === 'fiscalYear') {
-      const opts = fiscalYears(2070, 2090)
+      /* Registration fiscal year goes back a long way — companies registered
+         in the 2030s B.S. are still filing, so the list starts there. */
+      const opts = fiscalYears(2030, 2090)
         .map(y => `<option value="${attr(y)}">${esc(lang === 'np' ? npNum(y) : y)}</option>`).join('');
       control = `<select id="${id}"${rq}><option value="">${esc(lang === 'np' ? 'आर्थिक वर्ष छान्नुहोस्' : 'Select fiscal year')}</option>${opts}</select>`;
 
@@ -71,6 +73,16 @@ function makeToolPages(api) {
            <select id="addr_w" disabled><option value="">${esc(lang === 'np' ? 'वडा' : 'Ward')}</option></select>
          </div>
          <p class="addr-warn" id="addrWarn" hidden></p>`;
+
+    } else if (f.t === 'select') {
+      /* A fixed list. Each option is { v, np, en } — `v` is what render()
+         receives, so it can be the exact Nepali phrase the document needs. */
+      const opts = (f.options || [])
+        .map(o => `<option value="${attr(o.v)}"${o.v === f.def ? ' selected' : ''}>${esc(o[lang] || o.v)}</option>`)
+        .join('');
+      const ph0 = f.def ? '' :
+        `<option value="">${esc(L.p || (lang === 'np' ? 'छान्नुहोस्' : 'Select'))}</option>`;
+      control = `<select id="${id}"${rq}>${ph0}${opts}</select>`;
 
     } else if (f.suffix) {
       control =
@@ -169,7 +181,7 @@ function makeToolPages(api) {
       <button type="button" class="btn btn-primary btn-sm" id="btnPrint">${esc(lang === 'np' ? 'छाप्नुहोस् / PDF सुरक्षित गर्नुहोस्' : 'Print / Save as PDF')}</button>
     </div>
     <article class="paper" id="docBody"></article>
-    <div class="note is-warn" style="max-width:820px;margin:18px auto 0">
+    <div class="note is-warn no-print" style="max-width:820px;margin:18px auto 0">
       <p class="note-h">${esc(lang === 'np' ? 'पेस गर्नुअघि' : 'Before you submit')}</p>
       <p>${esc(lang === 'np'
         ? 'कागजात राम्ररी पढ्नुहोस्, नाम–मिति जाँच्नुहोस्, छापेर हस्ताक्षर र कम्पनीको छाप लगाई सम्बन्धित कार्यालय वा बैंकमा आफैं पेस गर्नुहोस्। यो कानुनी सल्लाह होइन।'
@@ -178,7 +190,7 @@ function makeToolPages(api) {
   </div>
 </div>
 
-${svc ? `<section class="sec sec-soft">
+${svc ? `<section class="sec sec-soft no-print">
   <div class="wrap">
     <div class="sec-head"><h2>${esc(lang === 'np' ? 'यो आफैं गर्न मन छैन?' : 'Rather not do it yourself?')}</h2>
     <p>${esc(lang === 'np'

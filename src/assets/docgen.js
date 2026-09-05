@@ -248,50 +248,127 @@
     return true;
   }
 
-  /* ------------------------------------------------------ document drawing */
+  /* ------------------------------------------------------ document drawing
+
+     A document is a list of PAGES; a page is a list of BLOCKS. One block
+     renderer serves every document type, so a new template needs no changes
+     here — it just returns different blocks.
+
+     A template may instead return the flat single-page shape (cornerRight,
+     title, meta, table, sections, …); `toBlocks` converts that, which is why
+     the older templates keep working untouched.                             */
+
+  /* Document text. Nepali sentences end " ।" — a danda must never be pushed
+     onto a line of its own, so the space before it is made non-breaking. */
+  function dt(s) {
+    return esc(s).replace(/ ।/g, ' ।');
+  }
+
+  function drawTable(tb) {
+    var h = '';
+    if (tb.caption) h += '<p class="doc-cap">' + dt(tb.caption) + '</p>';
+    h += '<table class="doc-table">';
+    if (tb.cols) {
+      h += '<thead><tr>';
+      tb.cols.forEach(function (c) { h += '<th>' + dt(c) + '</th>'; });
+      h += '</tr></thead>';
+    }
+    h += '<tbody>';
+    (tb.rows || []).forEach(function (r) {
+      h += '<tr>';
+      r.forEach(function (c, i) {
+        /* An empty last cell becomes a dotted signature rule. */
+        h += '<td>' + (c ? dt(c) : (i === r.length - 1 ? '<span class="dots"></span>' : '')) + '</td>';
+      });
+      h += '</tr>';
+    });
+    return h + '</tbody></table>';
+  }
+
+  function drawBlock(b) {
+    if (!b) return '';
+    if (typeof b === 'string') return '<p class="doc-item">' + dt(b) + '</p>';
+
+    switch (b.type) {
+      case 'corner':  return '<p class="doc-corner">' + dt(b.text) + '</p>';
+      case 'title':   return '<h2 class="doc-title">' + dt(b.text) + '</h2>';
+      case 'sub':     return '<p class="doc-sub">' + dt(b.text) + '</p>';
+      case 'conn':    return '<p class="doc-conn">' + dt(b.text) + '</p>';
+      case 'heading': return '<p class="doc-heading">' + dt(b.text) + '</p>';
+      case 'right':   return '<p class="doc-right">' + dt(b.text) + '</p>';
+      case 'subject': return '<p class="doc-subject"><span>' + dt(b.text) + '</span></p>';
+      case 'salut':   return '<p class="doc-salut">' + dt(b.text) + '</p>';
+      case 'secH':    return '<p class="doc-sec-h"><span>' + dt(b.text) + '</span></p>';
+      case 'gap':     return '<div class="doc-gap"></div>';
+      case 'rule':    return '<hr class="doc-rule">';
+
+      case 'para':
+        return '<p class="doc-intro' + (b.indent ? ' indent' : '') + '">' + dt(b.text) + '</p>';
+
+      /* A stack of plain left-aligned lines, e.g. the addressee. */
+      case 'lines':
+        return '<div class="doc-lines">' +
+          (b.items || []).map(function (l) { return '<p>' + dt(l) + '</p>'; }).join('') +
+          '</div>';
+
+      case 'meta':
+        return '<div class="doc-meta">' +
+          (b.items || []).map(function (m) {
+            return '<span><b>' + dt(m.l) + '</b> ' + dt(m.v) + '</span>';
+          }).join('') + '</div>';
+
+      case 'table':
+        return drawTable(b);
+
+      /* Numbered or labelled paragraphs — agenda items, decisions. */
+      case 'items':
+        return (b.items || []).map(function (it) {
+          if (typeof it === 'string') return '<p class="doc-item">' + dt(it) + '</p>';
+          return '<p class="doc-item"><b>' + dt(it.label) + '</b> ' + dt(it.text) + '</p>';
+        }).join('');
+
+      /* Right-aligned signature block. A null entry draws a dotted rule. */
+      case 'sign':
+        return '<div class="doc-sign">' +
+          (b.heading ? '<p class="h"><span>' + dt(b.heading) + '</span></p>' : '') +
+          (b.items || []).map(function (l) {
+            if (l == null) return '<p><span class="dots"></span></p>';
+            if (typeof l === 'string') return '<p>' + dt(l) + '</p>';
+            return '<p' + (l.bold ? ' class="b"' : '') + '>' + dt(l.l || '') +
+                   (l.v ? ' ' + dt(l.v) : '') +
+                   (l.rule ? ' <span class="dots"></span>' : '') + '</p>';
+          }).join('') + '</div>';
+    }
+    return '';
+  }
+
+  /** Flat single-page shape -> block list. Keeps older templates working. */
+  function toBlocks(doc) {
+    var b = [];
+    if (doc.cornerRight) b.push({ type: 'corner', text: doc.cornerRight });
+    if (doc.title)     b.push({ type: 'title', text: doc.title });
+    if (doc.subtitle)  b.push({ type: 'sub', text: doc.subtitle });
+    if (doc.connector) b.push({ type: 'conn', text: doc.connector });
+    if (doc.heading)   b.push({ type: 'heading', text: doc.heading });
+    if (doc.intro)     b.push({ type: 'para', text: doc.intro });
+    if (doc.meta && doc.meta.length) b.push({ type: 'meta', items: doc.meta });
+    if (doc.table) b.push({ type: 'table', caption: doc.table.caption,
+                            cols: doc.table.cols, rows: doc.table.rows });
+    (doc.sections || []).forEach(function (s) {
+      b.push({ type: 'secH', text: s.h });
+      b.push({ type: 'items', items: s.items });
+    });
+    if (doc.closing) b.push({ type: 'items', items: [doc.closing] });
+    return b;
+  }
 
   function drawDoc(doc) {
-    var h = '';
-    if (doc.cornerRight) h += '<p class="doc-corner">' + esc(doc.cornerRight) + '</p>';
-    if (doc.title)    h += '<h2 class="doc-title">' + esc(doc.title) + '</h2>';
-    if (doc.subtitle) h += '<p class="doc-sub">' + esc(doc.subtitle) + '</p>';
-    if (doc.connector) h += '<p class="doc-conn">' + esc(doc.connector) + '</p>';
-    if (doc.heading)  h += '<p class="doc-heading">' + esc(doc.heading) + '</p>';
-    if (doc.intro)    h += '<p class="doc-intro">' + esc(doc.intro) + '</p>';
-
-    if (doc.meta && doc.meta.length) {
-      h += '<div class="doc-meta">';
-      doc.meta.forEach(function (m) {
-        h += '<span><b>' + esc(m.l) + '</b> ' + esc(m.v) + '</span>';
-      });
-      h += '</div>';
-    }
-
-    if (doc.table) {
-      if (doc.table.caption) h += '<p class="doc-cap">' + esc(doc.table.caption) + '</p>';
-      h += '<table class="doc-table"><thead><tr>';
-      doc.table.cols.forEach(function (c) { h += '<th>' + esc(c) + '</th>'; });
-      h += '</tr></thead><tbody>';
-      doc.table.rows.forEach(function (r) {
-        h += '<tr>';
-        r.forEach(function (c, i) {
-          h += '<td>' + (c ? esc(c) : (i === r.length - 1 ? '<span class="dots"></span>' : '')) + '</td>';
-        });
-        h += '</tr>';
-      });
-      h += '</tbody></table>';
-    }
-
-    (doc.sections || []).forEach(function (s) {
-      h += '<p class="doc-sec-h">' + esc(s.h) + '</p>';
-      s.items.forEach(function (it) {
-        if (typeof it === 'string') h += '<p class="doc-item">' + esc(it) + '</p>';
-        else h += '<p class="doc-item"><b>' + esc(it.label) + '</b> ' + esc(it.text) + '</p>';
-      });
-    });
-
-    if (doc.closing) h += '<p class="doc-item">' + esc(doc.closing) + '</p>';
-    return h;
+    var pages = doc && doc.pages ? doc.pages : [toBlocks(doc || {})];
+    return pages.map(function (blocks) {
+      return '<section class="doc-page">' +
+        (blocks || []).map(drawBlock).join('') +
+        '</section>';
+    }).join('');
   }
 
   /* ------------------------------------------------------------------ wire */
