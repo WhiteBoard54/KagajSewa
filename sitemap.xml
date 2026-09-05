@@ -352,6 +352,24 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://kagajsewa.com/ne/tools/</loc>
+    <xhtml:link rel="alternate" hreflang="ne" href="https://kagajsewa.com/ne/tools/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://kagajsewa.com/tools/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://kagajsewa.com/tools/"/>
+    <lastmod>2026-09-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kagajsewa.com/ne/tools/bank-account-opening/single-shareholder/</loc>
+    <xhtml:link rel="alternate" hreflang="ne" href="https://kagajsewa.com/ne/tools/bank-account-opening/single-shareholder/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://kagajsewa.com/tools/bank-account-opening/single-shareholder/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://kagajsewa.com/tools/bank-account-opening/single-shareholder/"/>
+    <lastmod>2026-09-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://kagajsewa.com/ne/guides/</loc>
     <xhtml:link rel="alternate" hreflang="ne" href="https://kagajsewa.com/ne/guides/"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://kagajsewa.com/guides/"/>
@@ -905,6 +923,24 @@
     <xhtml:link rel="alternate" hreflang="ne" href="https://kagajsewa.com/ne/services/certified-copies/"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://kagajsewa.com/services/certified-copies/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://kagajsewa.com/services/certified-copies/"/>
+    <lastmod>2026-09-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kagajsewa.com/tools/</loc>
+    <xhtml:link rel="alternate" hreflang="ne" href="https://kagajsewa.com/ne/tools/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://kagajsewa.com/tools/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://kagajsewa.com/tools/"/>
+    <lastmod>2026-09-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kagajsewa.com/tools/bank-account-opening/single-shareholder/</loc>
+    <xhtml:link rel="alternate" hreflang="ne" href="https://kagajsewa.com/ne/tools/bank-account-opening/single-shareholder/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://kagajsewa.com/tools/bank-account-opening/single-shareholder/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://kagajsewa.com/tools/bank-account-opening/single-shareholder/"/>
     <lastmod>2026-09-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>

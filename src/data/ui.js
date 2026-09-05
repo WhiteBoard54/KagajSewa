@@ -12,6 +12,7 @@ const ui = {
 
     nav: {
       services: 'सेवाहरू',
+      tools: 'कागजात बनाउनुहोस्',
       how: 'कसरी काम गर्छ',
       why: 'किन हामी',
       guides: 'गाइड',
@@ -195,6 +196,7 @@ const ui = {
 
     nav: {
       services: 'Services',
+      tools: 'Generate',
       how: 'How it works',
       why: 'Why us',
       guides: 'Guides',

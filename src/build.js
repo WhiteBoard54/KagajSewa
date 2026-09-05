@@ -19,6 +19,7 @@ const { categories } = require('./data/categories');
 const { services } = require('./data/services');
 const { guides } = require('./data/guides');
 const { ui, faq, legal } = require('./data/ui');
+const { templates } = require('./data/doc-templates');
 
 const ROOT = path.resolve(__dirname, '..');
 const SRC = __dirname;
@@ -209,6 +210,7 @@ function header(lang, slug, opts = {}) {
   const enHref = opts.is404 ? l404('en') : href('en', slug);
   const nav = [
     [href(lang, 'services'), t.nav.services],
+    [href(lang, 'tools'), t.nav.tools],
     [href(lang, 'guides'), t.nav.guides],
     [href(lang, 'how-it-works'), t.nav.how],
     [href(lang, 'why-kagajsewa'), t.nav.why],
@@ -408,6 +410,7 @@ ${o.is404 ? '' : `<link rel="canonical" href="${attr(canonical)}">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="${attr(asset('styles.css'))}">
+${o.head || ''}
 ${jsonld}
 </head>
 <body>
@@ -420,6 +423,7 @@ ${o.body}
 ${footer(lang)}
 ${stickyCta(lang, o.orderName)}
 ${indexScript}
+${o.foot || ''}
 <script src="${attr(asset('app.js'))}" defer></script>
 </body>
 </html>`;
@@ -563,6 +567,14 @@ function pricingBlock(lang) {
   </div>
 </div>`;
 }
+
+/* --------------------------------------------------- document generator */
+
+const { makeToolPages } = require('./toolpages');
+const TOOLS = makeToolPages({
+  esc, attr, href, abs, icon, page, ui, site, asset, contactBand,
+  byId, serviceCard, HTML_LANG
+});
 
 /* ------------------------------------------------------------------ pages */
 
@@ -1433,6 +1445,9 @@ function build() {
     for (const c of sortedCats) emit(lang, c.slug, categoryPage(lang, c), '0.8', 'monthly');
     for (const s of services) emit(lang, s.slug, servicePage(lang, s), '0.9', 'monthly');
 
+    emit(lang, 'tools', TOOLS.toolsIndexPage(lang), '0.9', 'monthly');
+    for (const tpl of TOOLS.templates) emit(lang, tpl.slug, TOOLS.toolPage(lang, tpl), '0.9', 'monthly');
+
     emit(lang, 'guides', guidesIndexPage(lang), '0.8', 'monthly');
     for (const g of guides) emit(lang, g.slug, guidePage(lang, g), '0.7', 'monthly');
 
@@ -1457,6 +1472,9 @@ function build() {
   for (const f of fs.readdirSync(path.join(SRC, 'assets'))) {
     fs.copyFileSync(path.join(SRC, 'assets', f), path.join(assetDir, f));
   }
+  /* Administrative divisions, fetched on demand by the address picker. */
+  fs.copyFileSync(path.join(SRC, 'data', 'nepal-admin.json'),
+                  path.join(assetDir, 'nepal-admin.json'));
 
   /* sitemap with hreflang alternates */
   const seen = new Set();
@@ -1503,7 +1521,7 @@ Sitemap: ${site.siteUrl}/sitemap.xml
   console.log(LOCAL
     ? '  MODE: local  — links end in index.html so you can browse by double-clicking.\n         Run "npm run build" before pushing to GitHub.'
     : '  MODE: deploy — clean URLs like /services/. This is what you push to GitHub.\n         Run "npm run build:local" if you want to click around offline.');
-  console.log(`  ${count} pages  ·  ${services.length} services  ·  ${guides.length} guides  ·  ${categories.length} categories`);
+  console.log(`  ${count} pages  ·  ${services.length} services  ·  ${guides.length} guides  ·  ${categories.length} categories  ·  ${TOOLS.templates.length} generators`);
   console.log(`  sitemap: ${entries.length} URLs`);
   console.log(`  site URL: ${site.siteUrl}${site.basePath || ''}/`);
   if (site.contact.phoneDial.indexOf('X') > -1) {

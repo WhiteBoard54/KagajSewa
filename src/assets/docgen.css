@@ -1,0 +1,164 @@
+@charset "UTF-8";
+/* ==========================================================================
+   Document generator — form, preview and print.
+   Loaded only on /tools/ pages. Inherits the site tokens from styles.css.
+   ========================================================================== */
+
+.tool-head { padding: 18px 0 6px; }
+.tool-head .badge-free {
+  display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+  background: var(--ok-50); color: var(--ok); padding: 3px 9px; border-radius: var(--r-pill);
+  vertical-align: middle; margin-left: 8px;
+}
+.tool-head h1 { display: inline; }
+.tool-head p.lede { color: var(--ink-2); max-width: 70ch; margin-top: 10px; }
+
+.stage { padding-bottom: 40px; }
+.stage[data-view="form"] .view-doc { display: none; }
+.stage[data-view="doc"]  .view-form { display: none; }
+
+/* ---------------------------------------------------------------- the form */
+
+.form-card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 22px 22px 18px; margin-top: 18px;
+}
+.fgroup + .fgroup { margin-top: 26px; }
+.fgroup > h2 {
+  font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 16px;
+}
+html[lang="ne"] .fgroup > h2 { text-transform: none; letter-spacing: .02em; font-size: .92rem; }
+
+.frow { display: grid; gap: 16px; }
+@media (min-width: 700px) { .frow.two { grid-template-columns: 1fr 1fr; } }
+
+.fld { display: flex; flex-direction: column; gap: 6px; }
+.fld label { font-size: .88rem; font-weight: 600; color: var(--ink); }
+.fld .req { color: var(--seal, #a72a20); margin-left: 2px; }
+.fld .help { font-size: .78rem; color: var(--ink-3); }
+.fld input, .fld select {
+  font-family: inherit; font-size: .97rem; color: var(--ink); background: var(--card);
+  border: 1px solid var(--line-2); border-radius: var(--r-sm);
+  padding: 10px 12px; min-height: 44px; width: 100%; -webkit-appearance: none; appearance: none;
+}
+html[lang="ne"] .fld input, html[lang="ne"] .fld select { font-family: var(--f-deva); }
+.fld select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236f8288' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+}
+.fld input:focus, .fld select:focus {
+  outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-50);
+}
+.fld input::placeholder { color: var(--ink-3); }
+.fld.is-bad input, .fld.is-bad select { border-color: #a72a20; }
+
+/* text input with a fixed suffix, e.g. "… प्रा.लि." */
+.with-suffix { display: flex; }
+.with-suffix input { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+.with-suffix .sfx {
+  display: flex; align-items: center; padding: 0 12px; white-space: nowrap;
+  font-size: .9rem; font-weight: 600; color: var(--ink-2);
+  background: var(--bg-sunk); border: 1px solid var(--line-2); border-left: 0;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+
+/* BS date: year / month / day */
+.bsdate { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 8px; }
+
+/* address picker */
+.addr-picker { display: grid; gap: 8px; margin-top: 8px; }
+@media (min-width: 700px) { .addr-picker { grid-template-columns: repeat(4, 1fr); } }
+.addr-warn {
+  font-size: .84rem; color: var(--warn); background: var(--warn-50);
+  border-radius: var(--r-sm); padding: 9px 12px; margin-top: 8px;
+}
+
+.form-err {
+  background: #f6e4e2; color: #a72a20; border-radius: var(--r-sm);
+  padding: 11px 14px; font-size: .9rem; margin-top: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .form-err { background: #331b19; color: #e07b6e; }
+}
+
+.form-foot {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+  margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line);
+}
+.form-foot .left { display: flex; align-items: center; gap: 14px; }
+#savedNote { font-size: .8rem; color: var(--ink-3); }
+
+.privacy-note {
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: .85rem; color: var(--ink-2);
+  background: var(--ok-50); border-radius: var(--r-sm); padding: 12px 14px; margin-top: 16px;
+}
+.privacy-note svg { flex: none; color: var(--ok); margin-top: 2px; }
+
+/* ------------------------------------------------------------ the document */
+
+.doc-bar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+  background: var(--bg-soft); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 14px 16px; margin-top: 18px;
+}
+.doc-bar .ref { font-size: .8rem; color: var(--ink-3); }
+.doc-bar .ref b { color: var(--ink-2); font-weight: 600; }
+
+.paper {
+  background: #fff; color: #000;
+  border: 1px solid var(--line); border-radius: var(--r);
+  margin: 16px auto 0; padding: 46px 52px 60px; max-width: 820px;
+  font-family: "Noto Serif Devanagari", "Noto Sans Devanagari", serif;
+  font-size: 15.5px; line-height: 1.95;
+}
+.paper * { color: #000; }
+
+.doc-corner { text-align: right; font-size: 14px; margin: 0 0 18px; }
+.doc-title  { text-align: center; font-size: 27px; font-weight: 700; margin: 0 0 6px; line-height: 1.4; }
+.doc-sub    { text-align: center; font-size: 15px; margin: 0 0 4px; }
+.doc-conn   { text-align: center; font-size: 15px; margin: 0 0 4px; }
+.doc-heading{ text-align: center; font-size: 17px; font-weight: 600; margin: 0 0 22px; }
+.doc-intro  { text-align: justify; margin: 0 0 14px; }
+
+.doc-meta { display: flex; flex-wrap: wrap; gap: 6px 46px; margin: 0 0 18px; }
+.doc-meta span { font-size: 15px; }
+
+.doc-cap { font-weight: 600; margin: 0 0 6px; }
+.doc-table { width: 100%; border-collapse: collapse; margin: 0 0 20px; }
+.doc-table th, .doc-table td {
+  text-align: left; padding: 6px 8px 6px 0; font-size: 15px; font-weight: 400; vertical-align: bottom;
+}
+.doc-table th { font-weight: 600; }
+.doc-table td .dots { display: inline-block; min-width: 140px; border-bottom: 1px dotted #000; }
+
+.doc-sec-h { font-weight: 600; margin: 18px 0 8px; }
+.doc-item  { text-align: justify; margin: 0 0 10px; }
+
+/* ------------------------------------------------------------------- print */
+
+@media print {
+  @page { size: A4; margin: 18mm 16mm; }
+
+  /* Everything except the document itself is chrome. */
+  .hdr, .nav-mob, .ftr, .sticky-cta, .crumbs, .tool-head,
+  .doc-bar, .view-form, .skip, .contact-band { display: none !important; }
+
+  html, body { background: #fff !important; }
+  body { padding: 0 !important; }
+  .wrap { max-width: none; padding: 0; }
+
+  .paper {
+    border: 0; border-radius: 0; margin: 0; padding: 0;
+    max-width: none; font-size: 12.5pt; line-height: 1.85;
+  }
+  .doc-title { font-size: 21pt; }
+  .doc-heading { font-size: 13.5pt; }
+  .doc-corner, .doc-sub, .doc-conn, .doc-meta span,
+  .doc-table th, .doc-table td { font-size: 11.5pt; }
+
+  /* Never split a decision paragraph across pages. */
+  .doc-item, .doc-intro, .doc-table { break-inside: avoid; page-break-inside: avoid; }
+  .doc-sec-h { break-after: avoid; page-break-after: avoid; }
+}

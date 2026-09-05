@@ -1,0 +1,373 @@
+/* ============================================================================
+   KagajSewa — document generator engine.
+
+   Runs entirely in the visitor's browser. Nothing is uploaded; the form and
+   the finished document never leave the device. No dependencies.
+
+   The page supplies, via window.KS_DOC:
+     { id, lang, fields:[...], render: "<serialised function source>" }
+
+   PDF: produced by the browser's own print-to-PDF. That is deliberate —
+   it is the only way to get correct Devanagari shaping (conjuncts, the
+   shirorekha, reordered vowel signs) without shipping a heavy font-shaping
+   library. jsPDF and friends silently mangle Devanagari.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var D = window.KS_DOC;
+  if (!D) return;
+  var NP = D.lang === 'np';
+
+  /* ---------------------------------------------------------------- helpers */
+
+  var DEV = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+
+  /** 123 -> '१२३'. Leaves non-digits (spaces, dashes) untouched. */
+  function npDigits(s) {
+    return String(s == null ? '' : s).replace(/[0-9]/g, function (d) { return DEV[+d]; });
+  }
+
+  /** '2083/05/20' -> '२०८३/०५/२०' */
+  function npDate(s) {
+    if (!s) return '';
+    return npDigits(s);
+  }
+
+  /** '10:00' -> '१०:०० बजे' */
+  function npTime(s) {
+    if (!s) return '';
+    return npDigits(s) + ' बजे';
+  }
+
+  /** 5000000 -> '५०,००,०००'  (Nepali lakh/crore grouping, not thousands) */
+  function npMoney(n) {
+    var x = String(n == null ? '' : n).replace(/[^0-9]/g, '');
+    if (!x) return '';
+    var last3 = x.slice(-3), rest = x.slice(0, -3);
+    if (rest) rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+    return npDigits(rest ? rest + ',' + last3 : last3);
+  }
+
+  var H = {
+    np: npDigits, date: npDate, time: npTime, money: npMoney, lang: D.lang
+  };
+
+  var esc = function (s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var t = function (a, b) { return NP ? a : b; };
+
+  /* ------------------------------------------------------------- form state */
+
+  var STORE = 'ks-doc-' + D.id;
+  var state = {};
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORE);
+      if (raw) state = JSON.parse(raw) || {};
+    } catch (e) { state = {}; }
+  }
+  function saveState() {
+    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function collect() {
+    D.fields.forEach(function (f) {
+      /* A bsdate has no element at the base id — only _y / _m / _d — so it
+         has to be handled before the null check below. */
+      if (f.t === 'bsdate') {
+        var y = $('f_' + f.k + '_y'), m = $('f_' + f.k + '_m'), d = $('f_' + f.k + '_d');
+        state[f.k] = (y && y.value && m && m.value && d && d.value)
+          ? y.value + '/' + m.value + '/' + d.value : '';
+        return;
+      }
+      var el = $('f_' + f.k);
+      if (!el) return;
+      state[f.k] = el.value;
+    });
+    saveState();
+  }
+
+  function restore() {
+    D.fields.forEach(function (f) {
+      var v = state[f.k];
+      if (v == null || v === '') return;
+      if (f.t === 'bsdate') {
+        var p = String(v).split('/');
+        if (p.length === 3) {
+          var y = $('f_' + f.k + '_y'), m = $('f_' + f.k + '_m'), d = $('f_' + f.k + '_d');
+          if (y) y.value = p[0]; if (m) m.value = p[1];
+          if (d) { rebuildDays(f.k); d.value = p[2]; }
+        }
+      } else {
+        var el = $('f_' + f.k);
+        if (el) el.value = v;
+      }
+    });
+  }
+
+  /* ------------------------------------------------------- BS date controls
+     No AD<->BS conversion and no month-length table: the visitor knows their
+     own Bikram Sambat date, and a wrong computed date on a legal filing is
+     far worse than one extra dropdown. Day list is 1-32, which is the widest
+     any BS month gets.                                                      */
+
+  var BS_MONTHS = ['बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+                   'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'];
+
+  function rebuildDays(key) {
+    var d = $('f_' + key + '_d');
+    if (!d || d.options.length > 1) return;
+    for (var i = 1; i <= 32; i++) {
+      var o = document.createElement('option');
+      o.value = (i < 10 ? '0' : '') + i;
+      o.textContent = NP ? npDigits(i) : String(i);
+      d.appendChild(o);
+    }
+  }
+
+  /* ------------------------------------------------------- address selector */
+
+  var ADMIN = null, adminLoading = false;
+
+  function loadAdmin(cb) {
+    if (ADMIN) return cb(ADMIN);
+    if (adminLoading) return;
+    adminLoading = true;
+    fetch(D.adminUrl)
+      .then(function (r) { return r.json(); })
+      .then(function (j) { ADMIN = j; adminLoading = false; cb(j); })
+      .catch(function () {
+        adminLoading = false;
+        var w = $('addrWarn');
+        if (w) {
+          w.hidden = false;
+          w.textContent = t(
+            'ठेगाना सूची लोड हुन सकेन। माथिको ठेगाना बाकसमा सिधै लेख्नुहोस्।',
+            'Could not load the address list. Type the address directly in the box above.'
+          );
+        }
+      });
+  }
+
+  function fill(sel, rows, placeholder) {
+    sel.innerHTML = '';
+    var o0 = document.createElement('option');
+    o0.value = ''; o0.textContent = placeholder;
+    sel.appendChild(o0);
+    rows.forEach(function (r) {
+      var o = document.createElement('option');
+      o.value = r.i; o.textContent = NP ? r.ne : r.en;
+      sel.appendChild(o);
+    });
+    sel.disabled = false;
+  }
+
+  function setupAddress(key) {
+    var box = $('f_' + key);
+    var pv = $('addr_p'), ds = $('addr_d'), ll = $('addr_l'), wd = $('addr_w');
+    if (!box || !pv) return;
+
+    /* The dropdown LABELS follow the interface language, but the composed
+       address does not: it is dropped straight into a Nepali legal document,
+       so it is always built from the Nepali names. */
+    var A = null;
+    function nameOf(list, id) {
+      var r = list.find(function (x) { return String(x.i) === String(id); });
+      return r ? r.ne : '';
+    }
+    function compose() {
+      if (!A) return;
+      var parts = [];
+      if (pv.value) parts.push(nameOf(A.provinces, pv.value));
+      if (ds.value) parts.push(nameOf(A.districts, ds.value) + ' जिल्ला');
+      if (ll.value) parts.push(nameOf(A.locals, ll.value));
+      if (wd.value) parts.push('वडा नं. ' + npDigits(wd.value));
+      parts = parts.filter(Boolean);
+      if (parts.length) { box.value = parts.join(', '); collect(); }
+    }
+
+    loadAdmin(function (a) {
+      A = a;
+      fill(pv, a.provinces, t('प्रदेश', 'Province'));
+      pv.addEventListener('change', function () {
+        var rows = a.districts.filter(function (x) { return String(x.p) === pv.value; });
+        fill(ds, rows, t('जिल्ला', 'District'));
+        ll.innerHTML = ''; ll.disabled = true; wd.innerHTML = ''; wd.disabled = true;
+        compose();
+      });
+      ds.addEventListener('change', function () {
+        var rows = a.locals.filter(function (x) { return String(x.d) === ds.value; });
+        fill(ll, rows, t('स्थानीय तह', 'Local body'));
+        wd.innerHTML = ''; wd.disabled = true;
+        compose();
+      });
+      ll.addEventListener('change', function () {
+        var loc = a.locals.find(function (x) { return String(x.i) === ll.value; });
+        var rows = [];
+        if (loc) for (var i = 1; i <= loc.w; i++) rows.push({ i: i, ne: npDigits(i), en: String(i) });
+        fill(wd, rows, t('वडा', 'Ward'));
+        compose();
+      });
+      wd.addEventListener('change', compose);
+    });
+  }
+
+  /* ----------------------------------------------------------- validation */
+
+  function validate() {
+    var bad = [];
+    D.fields.forEach(function (f) {
+      if (!f.req) return;
+      var v = (state[f.k] || '').trim();
+      if (!v) bad.push(f);
+    });
+    D.fields.forEach(function (f) {
+      var el = $('f_' + f.k) || $('f_' + f.k + '_y');
+      var row = el && el.closest('.fld');
+      if (row) row.classList.toggle('is-bad', bad.indexOf(f) > -1);
+    });
+    var box = $('formErr');
+    if (bad.length) {
+      box.hidden = false;
+      box.textContent = t(
+        'तलका आवश्यक ठाउँ भर्न बाँकी छ: ',
+        'Please fill in these required fields: '
+      ) + bad.map(function (f) { return f.label; }).join(', ');
+      var first = $('f_' + bad[0].k) || $('f_' + bad[0].k + '_y');
+      if (first) first.focus();
+      return false;
+    }
+    box.hidden = true;
+    return true;
+  }
+
+  /* ------------------------------------------------------ document drawing */
+
+  function drawDoc(doc) {
+    var h = '';
+    if (doc.cornerRight) h += '<p class="doc-corner">' + esc(doc.cornerRight) + '</p>';
+    if (doc.title)    h += '<h2 class="doc-title">' + esc(doc.title) + '</h2>';
+    if (doc.subtitle) h += '<p class="doc-sub">' + esc(doc.subtitle) + '</p>';
+    if (doc.connector) h += '<p class="doc-conn">' + esc(doc.connector) + '</p>';
+    if (doc.heading)  h += '<p class="doc-heading">' + esc(doc.heading) + '</p>';
+    if (doc.intro)    h += '<p class="doc-intro">' + esc(doc.intro) + '</p>';
+
+    if (doc.meta && doc.meta.length) {
+      h += '<div class="doc-meta">';
+      doc.meta.forEach(function (m) {
+        h += '<span><b>' + esc(m.l) + '</b> ' + esc(m.v) + '</span>';
+      });
+      h += '</div>';
+    }
+
+    if (doc.table) {
+      if (doc.table.caption) h += '<p class="doc-cap">' + esc(doc.table.caption) + '</p>';
+      h += '<table class="doc-table"><thead><tr>';
+      doc.table.cols.forEach(function (c) { h += '<th>' + esc(c) + '</th>'; });
+      h += '</tr></thead><tbody>';
+      doc.table.rows.forEach(function (r) {
+        h += '<tr>';
+        r.forEach(function (c, i) {
+          h += '<td>' + (c ? esc(c) : (i === r.length - 1 ? '<span class="dots"></span>' : '')) + '</td>';
+        });
+        h += '</tr>';
+      });
+      h += '</tbody></table>';
+    }
+
+    (doc.sections || []).forEach(function (s) {
+      h += '<p class="doc-sec-h">' + esc(s.h) + '</p>';
+      s.items.forEach(function (it) {
+        if (typeof it === 'string') h += '<p class="doc-item">' + esc(it) + '</p>';
+        else h += '<p class="doc-item"><b>' + esc(it.label) + '</b> ' + esc(it.text) + '</p>';
+      });
+    });
+
+    if (doc.closing) h += '<p class="doc-item">' + esc(doc.closing) + '</p>';
+    return h;
+  }
+
+  /* ------------------------------------------------------------------ wire */
+
+  function ref() {
+    var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return 'KS' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' +
+           Math.random().toString(36).slice(2, 7).toUpperCase();
+  }
+
+  function init() {
+    var renderFn;
+    try { renderFn = eval('(' + D.render + ')'); }
+    catch (e) { return; }
+
+    loadState();
+    D.fields.forEach(function (f) {
+      if (f.t === 'bsdate') rebuildDays(f.k);
+      if (f.t === 'address') setupAddress(f.k);
+    });
+    restore();
+
+    var form = $('docForm');
+    form.addEventListener('input', function () { collect(); markSaved(); });
+    form.addEventListener('change', function () { collect(); markSaved(); });
+
+    var savedT;
+    function markSaved() {
+      var s = $('savedNote');
+      if (!s) return;
+      s.textContent = t('स्थानीय रूपमा सुरक्षित', 'Saved locally');
+      clearTimeout(savedT);
+      savedT = setTimeout(function () { s.textContent = ''; }, 1800);
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      collect();
+      if (!validate()) return;
+      var doc;
+      try { doc = renderFn(state, H); }
+      catch (err) {
+        $('formErr').hidden = false;
+        $('formErr').textContent = t('कागजात बनाउँदा समस्या आयो।', 'Something went wrong generating the document.');
+        return;
+      }
+      $('docBody').innerHTML = drawDoc(doc);
+      $('docRef').textContent = ref();
+      $('stage').setAttribute('data-view', 'doc');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    $('btnBack').addEventListener('click', function () {
+      $('stage').setAttribute('data-view', 'form');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    $('btnPrint').addEventListener('click', function () { window.print(); });
+
+    $('btnClear').addEventListener('click', function () {
+      if (!confirm(t('सबै भरेको विवरण मेटाउने?', 'Clear everything you have entered?'))) return;
+      state = {};
+      try { localStorage.removeItem(STORE); } catch (e) {}
+      form.reset();
+      D.fields.forEach(function (f) {
+        if (f.t === 'address') {
+          ['addr_p', 'addr_d', 'addr_l', 'addr_w'].forEach(function (i) {
+            var s = $(i); if (s) { s.selectedIndex = 0; }
+          });
+        }
+      });
+      $('formErr').hidden = true;
+      document.querySelectorAll('.fld.is-bad').forEach(function (n) { n.classList.remove('is-bad'); });
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
