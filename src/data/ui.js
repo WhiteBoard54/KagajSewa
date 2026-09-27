@@ -12,6 +12,7 @@ const ui = {
 
     nav: {
       services: 'सेवाहरू',
+      tools: 'कागजात बनाउनुहोस्',
       how: 'कसरी काम गर्छ',
       why: 'किन हामी',
       guides: 'गाइड',
@@ -195,6 +196,7 @@ const ui = {
 
     nav: {
       services: 'Services',
+      tools: 'Generate',
       how: 'How it works',
       why: 'Why us',
       guides: 'Guides',
@@ -262,7 +264,7 @@ const ui = {
 
     hero: {
       eyebrow: 'OCR / CAMIS · IRD · Ward office',
-      h1: 'Company registration Ayush, updates and document preparation in Nepal',
+      h1: 'Company registration, updates and document preparation in Nepal',
       lede: 'KagajSewa prepares the minutes, applications and forms your business needs for the Office of the Company Registrar (OCR/CAMIS), the Inland Revenue Department (IRD) and other offices — in the format each one expects.',
       sub: 'Prepared in the correct format. Ready to submit.',
       benefits: [

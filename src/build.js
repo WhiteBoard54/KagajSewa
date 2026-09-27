@@ -19,11 +19,28 @@ const { categories } = require('./data/categories');
 const { services } = require('./data/services');
 const { guides } = require('./data/guides');
 const { ui, faq, legal } = require('./data/ui');
+const { templates } = require('./data/doc-templates');
 
 const ROOT = path.resolve(__dirname, '..');
 const SRC = __dirname;
 const LANGS = ['np', 'en'];
 const HTML_LANG = { np: 'ne', en: 'en' };
+
+/* ---------------------------------------------------------------------------
+   DEFAULT_LANG is the language served at the site root ("/").
+   The other language lives under its own URL segment.
+
+     DEFAULT_LANG = 'en'  ->  English at /,  Nepali at /ne/
+     DEFAULT_LANG = 'np'  ->  Nepali at /,   English at /en/
+
+   Changing this one line moves every URL, and updates canonicals, hreflang,
+   x-default, the sitemap and the 404 pages to match. Nothing else to edit.
+--------------------------------------------------------------------------- */
+const DEFAULT_LANG = 'en';
+const URL_SEG = { np: 'ne', en: 'en' };
+
+/** '' for the root language, otherwise the language's URL segment. */
+const seg = lang => (lang === DEFAULT_LANG ? '' : URL_SEG[lang]);
 
 /* ------------------------------------------------------------------ utils */
 
@@ -36,9 +53,8 @@ const attr = s => esc(s);
 /** Public URL path for a slug in a language. '' = home. */
 function href(lang, slug) {
   const base = site.basePath || '';
-  const s = String(slug || '').replace(/^\/|\/$/g, '');
-  if (lang === 'np') return s ? `${base}/${s}/` : `${base}/`;
-  return s ? `${base}/en/${s}/` : `${base}/en/`;
+  const parts = [seg(lang), String(slug || '').replace(/^\/|\/$/g, '')].filter(Boolean);
+  return parts.length ? `${base}/${parts.join('/')}/` : `${base}/`;
 }
 
 /** Absolute URL, for canonical / og / sitemap. */
@@ -47,7 +63,7 @@ const abs = (lang, slug) => site.siteUrl + href(lang, slug);
 /** Where the file lands on disk. */
 function outPath(lang, slug) {
   const s = String(slug || '').replace(/^\/|\/$/g, '');
-  const parts = lang === 'np' ? [] : ['en'];
+  const parts = seg(lang) ? [seg(lang)] : [];
   if (s) parts.push(...s.split('/'));
   return path.join(ROOT, ...parts, 'index.html');
 }
@@ -74,7 +90,7 @@ const LOCAL = process.argv.includes('--local') || process.env.KS_LOCAL === '1';
 /** Depth of a page's own directory below the site root. */
 function depthOf(lang, slug) {
   const s = String(slug || '').replace(/^\/|\/$/g, '');
-  return (lang === 'np' ? 0 : 1) + (s ? s.split('/').length : 0);
+  return (seg(lang) ? 1 : 0) + (s ? s.split('/').length : 0);
 }
 
 /** Turn one root-relative URL into a relative one for a page at `depth`. */
@@ -193,10 +209,12 @@ function brandMark() {
 function header(lang, slug, opts = {}) {
   const t = ui[lang];
   const base = site.basePath || '';
-  const npHref = opts.is404 ? `${base}/404.html` : href('np', slug);
-  const enHref = opts.is404 ? `${base}/en/404.html` : href('en', slug);
+  const l404 = l => (seg(l) ? `${base}/${seg(l)}/404.html` : `${base}/404.html`);
+  const npHref = opts.is404 ? l404('np') : href('np', slug);
+  const enHref = opts.is404 ? l404('en') : href('en', slug);
   const nav = [
     [href(lang, 'services'), t.nav.services],
+    [href(lang, 'tools'), t.nav.tools],
     [href(lang, 'guides'), t.nav.guides],
     [href(lang, 'how-it-works'), t.nav.how],
     [href(lang, 'why-kagajsewa'), t.nav.why],
@@ -380,7 +398,7 @@ ${o.noindex ? '<meta name="robots" content="noindex, follow">' : ''}
 ${o.is404 ? '' : `<link rel="canonical" href="${attr(canonical)}">
 <link rel="alternate" hreflang="ne" href="${attr(abs('np', o.slug))}">
 <link rel="alternate" hreflang="en" href="${attr(abs('en', o.slug))}">
-<link rel="alternate" hreflang="x-default" href="${attr(abs('np', o.slug))}">`}
+<link rel="alternate" hreflang="x-default" href="${attr(abs(DEFAULT_LANG, o.slug))}">`}
 <meta name="theme-color" content="#0d5561">
 <meta property="og:type" content="${attr(o.ogType || 'website')}">
 <meta property="og:site_name" content="KagajSewa">
@@ -396,6 +414,7 @@ ${o.is404 ? '' : `<link rel="canonical" href="${attr(canonical)}">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="${attr(asset('styles.css'))}">
+${o.head || ''}
 ${jsonld}
 </head>
 <body>
@@ -408,6 +427,7 @@ ${o.body}
 ${footer(lang)}
 ${stickyCta(lang, o.orderName)}
 ${indexScript}
+${o.foot || ''}
 <script src="${attr(asset('app.js'))}" defer></script>
 </body>
 </html>`;
@@ -551,6 +571,14 @@ function pricingBlock(lang) {
   </div>
 </div>`;
 }
+
+/* --------------------------------------------------- document generator */
+
+const { makeToolPages } = require('./toolpages');
+const TOOLS = makeToolPages({
+  esc, attr, href, abs, icon, page, ui, site, asset, contactBand,
+  byId, serviceCard, HTML_LANG
+});
 
 /* ------------------------------------------------------------------ pages */
 
@@ -1393,7 +1421,7 @@ function notFoundPage(lang) {
   return page({
     // 404.html sits at the root of its language, not in a /404/ directory.
     lang, slug: '404', noindex: true, withSearch: true, is404: true,
-    depth: lang === 'np' ? 0 : 1,
+    depth: seg(lang) ? 1 : 0,
     title: t.notFound.metaTitle,
     desc: t.notFound.p,
     body
@@ -1421,6 +1449,9 @@ function build() {
     for (const c of sortedCats) emit(lang, c.slug, categoryPage(lang, c), '0.8', 'monthly');
     for (const s of services) emit(lang, s.slug, servicePage(lang, s), '0.9', 'monthly');
 
+    emit(lang, 'tools', TOOLS.toolsIndexPage(lang), '0.9', 'monthly');
+    for (const tpl of TOOLS.templates) emit(lang, tpl.slug, TOOLS.toolPage(lang, tpl), '0.9', 'monthly');
+
     emit(lang, 'guides', guidesIndexPage(lang), '0.8', 'monthly');
     for (const g of guides) emit(lang, g.slug, guidePage(lang, g), '0.7', 'monthly');
 
@@ -1431,10 +1462,13 @@ function build() {
     for (const item of legal) emit(lang, item.slug, legalPage(lang, item), '0.3', 'yearly');
   }
 
-  /* 404 — GitHub Pages serves /404.html for any missing path. Nepali default. */
-  write(path.join(ROOT, '404.html'), notFoundPage('np'));
-  write(path.join(ROOT, 'en', '404.html'), notFoundPage('en'));
-  count += 2;
+  /* 404 — GitHub Pages serves /404.html for any missing path, so the root
+     404 must be in the default language. */
+  for (const lang of LANGS) {
+    const parts = seg(lang) ? [seg(lang), '404.html'] : ['404.html'];
+    write(path.join(ROOT, ...parts), notFoundPage(lang));
+    count++;
+  }
 
   /* assets */
   const assetDir = path.join(ROOT, 'assets');
@@ -1442,6 +1476,9 @@ function build() {
   for (const f of fs.readdirSync(path.join(SRC, 'assets'))) {
     fs.copyFileSync(path.join(SRC, 'assets', f), path.join(assetDir, f));
   }
+  /* Administrative divisions, fetched on demand by the address picker. */
+  fs.copyFileSync(path.join(SRC, 'data', 'nepal-admin.json'),
+                  path.join(assetDir, 'nepal-admin.json'));
 
   /* sitemap with hreflang alternates */
   const seen = new Set();
@@ -1462,7 +1499,7 @@ function build() {
     sm.push(`    <loc>${esc(abs(u.lang, u.slug))}</loc>`);
     sm.push(`    <xhtml:link rel="alternate" hreflang="ne" href="${esc(abs('np', u.slug))}"/>`);
     sm.push(`    <xhtml:link rel="alternate" hreflang="en" href="${esc(abs('en', u.slug))}"/>`);
-    sm.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${esc(abs('np', u.slug))}"/>`);
+    sm.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${esc(abs(DEFAULT_LANG, u.slug))}"/>`);
     sm.push(`    <lastmod>${today}</lastmod>`);
     sm.push(`    <changefreq>${u.changefreq}</changefreq>`);
     sm.push(`    <priority>${u.priority}</priority>`);
@@ -1488,7 +1525,7 @@ Sitemap: ${site.siteUrl}/sitemap.xml
   console.log(LOCAL
     ? '  MODE: local  — links end in index.html so you can browse by double-clicking.\n         Run "npm run build" before pushing to GitHub.'
     : '  MODE: deploy — clean URLs like /services/. This is what you push to GitHub.\n         Run "npm run build:local" if you want to click around offline.');
-  console.log(`  ${count} pages  ·  ${services.length} services  ·  ${guides.length} guides  ·  ${categories.length} categories`);
+  console.log(`  ${count} pages  ·  ${services.length} services  ·  ${guides.length} guides  ·  ${categories.length} categories  ·  ${TOOLS.templates.length} generators`);
   console.log(`  sitemap: ${entries.length} URLs`);
   console.log(`  site URL: ${site.siteUrl}${site.basePath || ''}/`);
   if (site.contact.phoneDial.indexOf('X') > -1) {
