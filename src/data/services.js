@@ -215,7 +215,7 @@ const services = [
     shareholder: 'single',
     popular: 3,
     order: 1,
-    price: 400,
+    price: 1500,
     time: { np: 'सोही दिन', en: 'Same day' },
     np: {
       name: 'वार्षिक अद्यावधिक — एकल शेयरधनी',
@@ -245,7 +245,7 @@ const services = [
         'लेखापरीक्षण प्रतिवेदन र वित्तीय विवरण तपाईंको लेखापरीक्षकले तयार गर्नुपर्छ — हामी त्यो बनाउँदैनौं।'
       ],
       metaTitle: 'एकल शेयरधनी कम्पनी वार्षिक अद्यावधिक | दफा ५१, दफा ९२',
-      metaDesc: 'एकल शेयरधनी कम्पनीको वार्षिक अद्यावधिकका लागि सञ्चालक माइन्युट, साधारण सभा माइन्युट, दफा ५१ लगत, दफा ९२ विवरण र निवेदन। NPR ४०० बाट सुरु।'
+      metaDesc: 'एकल शेयरधनी कम्पनीको वार्षिक अद्यावधिकका लागि सञ्चालक माइन्युट, साधारण सभा माइन्युट, दफा ५१ लगत, दफा ९२ विवरण र निवेदन। NPR १,५०० बाट सुरु।'
     },
     en: {
       name: 'Annual Company Update — Single Shareholder',
@@ -275,7 +275,7 @@ const services = [
         'The audit report and financial statements come from your auditor. We do not prepare those.'
       ],
       metaTitle: 'Annual Company Update Nepal — Single Shareholder | Section 51, 92',
-      metaDesc: 'Annual update documents for a single shareholder company in Nepal — board minute, AGM minute, Section 51 inventory, Section 92 disclosure and the application. From NPR 400.'
+      metaDesc: 'Annual update documents for a single shareholder company in Nepal — board minute, AGM minute, Section 51 inventory, Section 92 disclosure and the application. From NPR 1,500.'
     },
     faq: [
       {
@@ -298,7 +298,7 @@ const services = [
     shareholder: 'multiple',
     popular: 4,
     order: 2,
-    price: 600,
+    price: 2000,
     time: { np: 'सोही दिन', en: 'Same day' },
     np: {
       name: 'वार्षिक अद्यावधिक — बहुल शेयरधनी',
@@ -330,7 +330,7 @@ const services = [
         'लेखापरीक्षण प्रतिवेदन तपाईंको लेखापरीक्षकबाट आउनुपर्छ।'
       ],
       metaTitle: 'बहुल शेयरधनी कम्पनी वार्षिक अद्यावधिक | दफा ५१, दफा ९२',
-      metaDesc: 'दुई वा बढी शेयरधनी भएको कम्पनीको वार्षिक अद्यावधिकका लागि माइन्युट, दफा ५१ लगत, दफा ९२ विवरण र निवेदन तयारी सेवा। NPR ६०० बाट सुरु।'
+      metaDesc: 'दुई वा बढी शेयरधनी भएको कम्पनीको वार्षिक अद्यावधिकका लागि माइन्युट, दफा ५१ लगत, दफा ९२ विवरण र निवेदन तयारी सेवा। NPR २,००० बाट सुरु।'
     },
     en: {
       name: 'Annual Company Update — Multiple Shareholder',
@@ -362,7 +362,7 @@ const services = [
         'The audit report comes from your auditor.'
       ],
       metaTitle: 'Annual Company Update Nepal — Multiple Shareholder | Section 51, 92',
-      metaDesc: 'Annual update documents for a multiple shareholder company in Nepal — minutes, Section 51 inventory, Section 92 disclosure and the application. From NPR 600.'
+      metaDesc: 'Annual update documents for a multiple shareholder company in Nepal — minutes, Section 51 inventory, Section 92 disclosure and the application. From NPR 2,000.'
     },
     faq: [
       {

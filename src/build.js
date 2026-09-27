@@ -94,8 +94,12 @@ function relativise(html, depth) {
 
 const money = n => 'NPR ' + Number(n).toLocaleString('en-US');
 
-function priceLine(lang, n) {
-  return lang === 'np' ? `${money(n)} बाट सुरु` : `From ${money(n)}`;
+function priceText(lang, s) {
+  return money(s.price);
+}
+
+function priceLine(lang, s) {
+  return lang === 'np' ? `${priceText(lang, s)} बाट सुरु` : `From ${priceText(lang, s)}`;
 }
 
 const byId = id => services.find(s => s.id === id);
@@ -445,7 +449,7 @@ function serviceCard(lang, s, opts = {}) {
   <div class="svc-foot">
     <span class="price">
       <span class="from">${esc(t.common.from)}</span>
-      <span class="amt">${esc(money(s.price))}</span>
+      <span class="amt">${esc(priceText(lang, s))}</span>
     </span>
     <span class="lnk">${esc(t.cta.view)} ${icon('arrow', 15, 2)}</span>
   </div>
@@ -986,7 +990,7 @@ function servicePage(lang, s) {
       <aside class="detail-side">
         <div class="buy">
           <p class="price-lbl">${esc(t.common.from)}</p>
-          <p class="price-big">${esc(money(s.price))}</p>
+          <p class="price-big">${esc(priceText(lang, s))}</p>
           <p class="price-note">${esc(t.pricing.varyNote)}</p>
           <a class="btn btn-primary btn-block" href="${attr(orderHref(lang, d.name))}">${esc(t.cta.primary)}</a>
           <a class="btn btn-outline btn-block" href="${attr(href(lang, 'contact'))}">${esc(t.cta.secondary)}</a>
@@ -1140,7 +1144,7 @@ function guidePage(lang, g) {
         ${relS.length ? `<div class="buy">
           <p class="price-lbl">${esc(t.common.relatedServices)}</p>
           <ul class="list-plain mt-24" style="margin-top:10px">
-            ${relS.map(r => `<li><a href="${attr(href(lang, r.slug))}"><b>${esc(r[lang].name)}</b></a><br><span class="muted" style="font-size:.82rem">${esc(priceLine(lang, r.price))}</span></li>`).join('')}
+            ${relS.map(r => `<li><a href="${attr(href(lang, r.slug))}"><b>${esc(r[lang].name)}</b></a><br><span class="muted" style="font-size:.82rem">${esc(priceLine(lang, r))}</span></li>`).join('')}
           </ul>
           <a class="btn btn-primary btn-block" href="${attr(href(lang, 'contact'))}">${esc(t.cta.primary)}</a>
           <div class="contact-mini">
